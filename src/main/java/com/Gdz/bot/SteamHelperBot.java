@@ -8,23 +8,41 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
+import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+
+import java.util.List;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class SteamHelperBot extends TelegramLongPollingBot {
 
+    private static final List<BotCommand> BOT_COMMANDS = List.of(
+            new BotCommand("/start", "начать работу с ботом"),
+            new BotCommand("/help", "показать список команд и помощь"),
+            new BotCommand("/bind", "привязать аккаунт Steam"),
+            new BotCommand("/stats", "посмотреть статистику по играм")
+    );
     private final AuthService authService;
     private final SteamService steamService;
-
     @Value("${telegram.bot.token}")
     private String botToken;
-
     @Value("${telegram.bot.username}")
     private String botUsername;
+
+    public void init() {
+        try {
+            execute(new SetMyCommands(BOT_COMMANDS, new BotCommandScopeDefault(), null));
+            log.info("Список команд бота успешно зарегистрирован в Telegram");
+        } catch (TelegramApiException e) {
+            log.error("Не удалось зарегистрировать команды бота", e);
+        }
+    }
 
     @Override
     public String getBotToken() {
@@ -42,6 +60,7 @@ public class SteamHelperBot extends TelegramLongPollingBot {
         if (!update.hasMessage() || !update.getMessage().hasText()) {
             return;
         }
+
 
         String text = update.getMessage().getText().trim();
         String lowerText = text.toLowerCase();
@@ -64,14 +83,14 @@ public class SteamHelperBot extends TelegramLongPollingBot {
 
                 case "/start" -> createMessage(chatId, """
                         Добро пожаловать!
-
+                        
                         Я помогу тебе посмотреть статистику Steam.
                         Используй /bind <ссылка на Steam> чтобы привязать аккаунт.
                         """);
 
                 case "/help" -> createMessage(chatId, """
                         Доступные команды:
-
+                        
                         /bind <ссылка на Steam> — привязать Steam
                         /stats — показать статистику
                         /help — помощь
@@ -96,7 +115,7 @@ public class SteamHelperBot extends TelegramLongPollingBot {
 
             return createMessage(chatId, """
                     🔗 Привязка Steam:
-
+                    
                     %s
                     """.formatted(result));
 
@@ -119,7 +138,7 @@ public class SteamHelperBot extends TelegramLongPollingBot {
 
             return createMessage(chatId, """
                     🎮 Статистика Steam
-
+                    
                     👤 Ник: %s
                     🎲 Игр: %d
                     ⏱ Часов всего: %d
