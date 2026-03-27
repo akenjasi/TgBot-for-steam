@@ -7,6 +7,8 @@ import com.Gdz.bot.service.SteamService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -19,7 +21,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.util.List;
 
-@Slf4j
+
 @Component
 @RequiredArgsConstructor
 public class SteamHelperBot extends TelegramLongPollingBot {
@@ -32,6 +34,7 @@ public class SteamHelperBot extends TelegramLongPollingBot {
             new BotCommand("/ai", "посмотреть описание от ИИ")
 
     );
+    private static final Logger logger = LoggerFactory.getLogger(SteamHelperBot.class);
     private final AuthService authService;
     private final SteamService steamService;
     private final AiService aiService;
@@ -44,9 +47,9 @@ public class SteamHelperBot extends TelegramLongPollingBot {
     public void init() {
         try {
             execute(new SetMyCommands(BOT_COMMANDS, new BotCommandScopeDefault(), null));
-            log.info("Список команд бота успешно зарегистрирован в Telegram");
+            logger.info("Список команд бота успешно зарегистрирован в Telegram");
         } catch (TelegramApiException e) {
-            log.error("Не удалось зарегистрировать команды бота", e);
+            logger.error("Не удалось зарегистрировать команды бота", e);
         }
     }
 
@@ -73,7 +76,7 @@ public class SteamHelperBot extends TelegramLongPollingBot {
         long chatId = update.getMessage().getChatId();
         Long telegramId = update.getMessage().getFrom().getId();
 
-        log.info("Сообщение от {}: {}", telegramId, text);
+        logger.info("Сообщение от {}: {}", telegramId, text);
 
         SendMessage response;
 
@@ -113,7 +116,7 @@ public class SteamHelperBot extends TelegramLongPollingBot {
         try {
             execute(response);
         } catch (TelegramApiException e) {
-            log.error("Ошибка отправки сообщения", e);
+            logger.error("Ошибка отправки сообщения", e);
         }
     }
 
@@ -130,7 +133,7 @@ public class SteamHelperBot extends TelegramLongPollingBot {
                     """.formatted(result));
 
         } catch (Exception e) {
-            log.error("Ошибка bind", e);
+            logger.error("Ошибка bind", e);
             return createMessage(chatId, "Ошибка сервиса авторизации. Попробуй позже.");
         }
     }
@@ -149,7 +152,7 @@ public class SteamHelperBot extends TelegramLongPollingBot {
             return createMessage(chatId, stats.toString());
 
         } catch (Exception e) {
-            log.error("Ошибка получения статистики", e);
+            logger.error("Ошибка получения статистики", e);
             return createMessage(chatId, "Ошибка Steam сервиса. Попробуй позже.");
         }
     }
@@ -168,7 +171,7 @@ public class SteamHelperBot extends TelegramLongPollingBot {
             return createMessage(chatId, AiReview);
 
         } catch (Exception e) {
-            log.error("Ошибка получения описания от ИИ", e);
+            logger.error("Ошибка получения описания от ИИ", e);
             return createMessage(chatId, "Ошибка Ai сервиса. Попробуй позже.");
         }
     }

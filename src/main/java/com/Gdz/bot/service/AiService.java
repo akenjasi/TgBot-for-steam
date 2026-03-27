@@ -1,27 +1,27 @@
 package com.Gdz.bot.service;
 
-import com.Gdz.bot.dto.SteamStatsDto;
 import lombok.RequiredArgsConstructor;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 @Service
 @RequiredArgsConstructor
 public class AiService {
+
     private final RestTemplate restTemplate;
 
     @Value("${ai.stats.service.url}")
     private String aiUrl;
 
     public String getAiStats(Long telegramId) {
-
         String url = aiUrl + "/api/ai/summaries/" + telegramId;
 
         String response = restTemplate.getForObject(url, String.class);
-        if(response == null) return null;
+        if (response == null) {
+            return null;
+        }
 
         JSONObject json = new JSONObject(response);
 
