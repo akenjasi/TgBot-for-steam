@@ -59,7 +59,7 @@ def bind(data: BindRequest, session: Session = Depends(get_session)):
         session.add(link)
         session.commit()
 
-        return build_bind_response("ok", "привязка выполнена", steam_id)
+        return build_bind_response("success", "привязка выполнена", steam_id)
     except BusinessError as exc:
         return build_bind_response("error", exc.message, None)
 
