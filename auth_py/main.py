@@ -1,8 +1,9 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends
 from sqlmodel import SQLModel, select, Session
 from database import engine, get_session
 from models import Link, LinkCreate
 from pydantic import BaseModel
+from typing import Optional
 
 app = FastAPI()
 
@@ -17,31 +18,56 @@ class BindRequest(BaseModel):
     steamLink: str
 
 
-def parse_steam_id(url: str) -> str:
+class BindResponse(BaseModel):
+    status: str
+    message: str
+    steamId: Optional[str]
+
+
+def parse_steam_id(url: str) -> Optional[str]:
     try:
         id = url.split("/profiles/")[1].strip("/")
         if not (id.isdigit() and len(id) == 17 and id.startswith("765611")):
             raise ValueError()
         return id
     except:
-        raise HTTPException(400, "неправильная ссылка")
+        return None
 
 
-@app.post("/bind")
-def bind(data: BindRequest, session: Session = Depends(get_session)):
+@app.post("/bind", response_model=BindResponse)
+def bind(data: BindRequest, session: Session = Depends(get_session)) -> BindResponse:
     steam_id = parse_steam_id(data.steamLink)
 
+    if steam_id is None:
+        return BindResponse(
+            status="error",
+            message="неправильная ссылка",
+            steamId=None,
+        )
+
     if session.get(Link, data.telegramId):
-        raise HTTPException(409, "telegram уже привязан")
+        return BindResponse(
+            status="error",
+            message="telegram уже привязан",
+            steamId=None,
+        )
 
     if session.exec(select(Link).where(Link.steam_id64 == steam_id)).first():
-        raise HTTPException(409, "steam уже привязан")
+        return BindResponse(
+            status="error",
+            message="steam уже привязан",
+            steamId=None,
+        )
 
     link = Link(telegram_id=data.telegramId, steam_id64=steam_id)
     session.add(link)
     session.commit()
 
-    return f"ok, steam: {steam_id}"
+    return BindResponse(
+        status="ok",
+        message="привязка выполнена",
+        steamId=steam_id,
+    )
 
 
 @app.get("/link/{telegram_id}")
