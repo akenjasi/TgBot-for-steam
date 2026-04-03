@@ -69,5 +69,5 @@ def bind(data: BindRequest, session: Session = Depends(get_session)):
 
 @app.get("/link/{telegram_id}")
 def get_link(telegram_id: int, session: Session = Depends(get_session)):
-    link = session.get(Link, telegram_id)
-    return {"steam_id": link.steam_id64 if link else None}
+    link = session.exec(select(Link).where(Link.telegram_id == telegram_id)).first()
+    return {"steamId": link.steam_id64 if link else None}
