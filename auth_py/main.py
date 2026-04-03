@@ -49,8 +49,11 @@ def bind(data: BindRequest, session: Session = Depends(get_session)):
     try:
         steam_id = parse_steam_id(data.steamLink)
 
-        if session.get(Link, data.telegramId):
-            return build_bind_response("error", "telegram уже привязан", None)
+        existing_telegram_link = session.exec(
+            select(Link).where(Link.telegram_id == data.telegramId)
+        ).first()
+        if existing_telegram_link:
+            return build_bind_response("error", "telegram_id уже привязан к steam", None)
 
         if session.exec(select(Link).where(Link.steam_id64 == steam_id)).first():
             return build_bind_response("error", "steam уже привязан", None)
