@@ -1,10 +1,10 @@
 from fastapi import FastAPI, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import SQLModel, select, Session
+from sqlmodel import SQLModel, Session, select
+
 from database import engine, get_session
 from models import Link
-from pydantic import BaseModel
 
 app = FastAPI()
 
@@ -19,29 +19,22 @@ class BindRequest(BaseModel):
     steamLink: str
 
 
-class BindResponse(BaseModel):
-    status: str
-    message: str
-    steamId: str | None
-
-
 class BusinessError(Exception):
     def __init__(self, message: str):
         self.message = message
 
 
-def build_bind_response(status: str, message: str, steam_id: str | None) -> BindResponse:
-    return BindResponse(status=status, message=message, steamId=steam_id)
-
-
 def parse_steam_id(url: str) -> str:
-    try:
-        steam_id = url.split("/profiles/")[1].strip("/")
-    except Exception as exc:
-        raise BusinessError("неправильная ссылка") from exc
+    parsed = urlparse(url)
+    path = parsed.path.strip("/")
+    parts = path.split("/")
 
+    if len(parts) != 2 or parts[0] != "profiles":
+        raise BusinessError("Неверная ссылка Steam")
+
+    steam_id = parts[1]
     if not (steam_id.isdigit() and len(steam_id) == 17 and steam_id.startswith("765611")):
-        raise BusinessError("неправильная ссылка")
+        raise BusinessError("Неверная ссылка Steam")
 
     return steam_id
 
