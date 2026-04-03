@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import SQLModel, select, Session
 from database import engine, get_session
 from models import Link, LinkCreate
@@ -60,7 +61,11 @@ def bind(data: BindRequest, session: Session = Depends(get_session)):
 
         link = Link(telegram_id=data.telegramId, steam_id64=steam_id)
         session.add(link)
-        session.commit()
+        try:
+            session.commit()
+        except IntegrityError:
+            session.rollback()
+            return build_bind_response("error", "конфликт уникальных полей", None)
 
         return build_bind_response("success", "привязка выполнена", steam_id)
     except BusinessError as exc:
