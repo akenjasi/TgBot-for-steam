@@ -4,17 +4,12 @@ from fastapi import Depends, FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import SQLModel, Session, select
+from sqlmodel import Session, select
 
-from database import engine, get_session
+from database import get_session
 from models import Link
 
 app = FastAPI()
-
-
-@app.on_event("startup")
-def startup():
-    SQLModel.metadata.create_all(engine)
 
 
 class BindRequest(BaseModel):
