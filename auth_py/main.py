@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends
 from sqlmodel import SQLModel, select, Session
 from database import engine, get_session
-from models import Link, LinkCreate
+from models import Link
 from pydantic import BaseModel
 
 app = FastAPI()
