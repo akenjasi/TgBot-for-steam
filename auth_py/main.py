@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends
+from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import SQLModel, select, Session
 from database import engine, get_session
@@ -76,3 +77,21 @@ def bind(data: BindRequest, session: Session = Depends(get_session)):
 def get_link(telegram_id: int, session: Session = Depends(get_session)):
     link = session.exec(select(Link).where(Link.telegram_id == telegram_id)).first()
     return {"steamId": link.steam_id64 if link else None}
+
+
+@app.delete("/link/{telegram_id}")
+def delete_link(telegram_id: int, session: Session = Depends(get_session)):
+    link = session.exec(select(Link).where(Link.telegram_id == telegram_id)).first()
+
+    if not link:
+        return JSONResponse(
+            status_code=404,
+            content={"status": "error", "message": "Привязка не найдена"},
+        )
+
+    session.delete(link)
+    session.commit()
+    return JSONResponse(
+        status_code=200,
+        content={"status": "success", "message": "Привязка удалена"},
+    )
