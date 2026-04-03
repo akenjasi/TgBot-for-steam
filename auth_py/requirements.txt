@@ -1,4 +1,5 @@
 fastapi
 uvicorn
 sqlmodel
+alembic
 requests
