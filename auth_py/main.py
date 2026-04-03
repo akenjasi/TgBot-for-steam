@@ -1,8 +1,5 @@
-from urllib.parse import urlparse
-
-from fastapi import Depends, FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import SQLModel, Session, select
 
@@ -53,22 +50,13 @@ def bind(data: BindRequest, session: Session = Depends(get_session)):
         if existing_telegram_link:
             return JSONResponse(
                 status_code=409,
-                content={
-                    "status": "error",
-                    "message": "Этот Telegram уже привязан",
-                    "steamId": None,
-                },
+                content=build_bind_response("error", "telegram_id уже привязан к steam", None).dict(),
             )
 
-        existing_steam_link = session.exec(select(Link).where(Link.steam_id64 == steam_id)).first()
-        if existing_steam_link:
+        if session.exec(select(Link).where(Link.steam_id64 == steam_id)).first():
             return JSONResponse(
                 status_code=409,
-                content={
-                    "status": "error",
-                    "message": "Этот Steam уже привязан",
-                    "steamId": None,
-                },
+                content=build_bind_response("error", "steam уже привязан", None).dict(),
             )
 
         link = Link(telegram_id=data.telegramId, steam_id64=steam_id)
@@ -79,41 +67,30 @@ def bind(data: BindRequest, session: Session = Depends(get_session)):
             session.rollback()
             return JSONResponse(
                 status_code=409,
-                content={
-                    "status": "error",
-                    "message": "Конфликт привязки",
-                    "steamId": None,
-                },
+                content=build_bind_response("error", "конфликт уникальных полей", None).dict(),
             )
 
         return JSONResponse(
             status_code=200,
-            content={
-                "status": "success",
-                "message": "Аккаунт привязан",
-                "steamId": steam_id,
-            },
+            content=build_bind_response("success", "привязка выполнена", steam_id).dict(),
         )
     except BusinessError as exc:
         return JSONResponse(
             status_code=400,
-            content={
-                "status": "error",
-                "message": exc.message,
-                "steamId": None,
-            },
+            content=build_bind_response("error", exc.message, None).dict(),
         )
 
 
-@app.get("/link/{telegramId}")
-def get_link(telegramId: int, session: Session = Depends(get_session)):
-    link = session.exec(select(Link).where(Link.telegram_id == telegramId)).first()
-    return {"status": "success", "steamId": link.steam_id64 if link else None}
+@app.get("/link/{telegram_id}")
+def get_link(telegram_id: int, session: Session = Depends(get_session)):
+    link = session.exec(select(Link).where(Link.telegram_id == telegram_id)).first()
+    return {"steamId": link.steam_id64 if link else None}
 
 
-@app.delete("/link/{telegramId}")
-def delete_link(telegramId: int, session: Session = Depends(get_session)):
-    link = session.exec(select(Link).where(Link.telegram_id == telegramId)).first()
+@app.delete("/link/{telegram_id}")
+def delete_link(telegram_id: int, session: Session = Depends(get_session)):
+    link = session.exec(select(Link).where(Link.telegram_id == telegram_id)).first()
+
     if not link:
         return JSONResponse(
             status_code=404,
@@ -122,4 +99,7 @@ def delete_link(telegramId: int, session: Session = Depends(get_session)):
 
     session.delete(link)
     session.commit()
-    return {"status": "success", "message": "Привязка удалена"}
+    return JSONResponse(
+        status_code=200,
+        content={"status": "success", "message": "Привязка удалена"},
+    )
